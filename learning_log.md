@@ -11,7 +11,8 @@
 | 日期 | Phase | 主題 | 狀態 | 練習檔案 | 核心備註 |
 |---|---|---|---|---|---|
 | 2026-11-25 | Phase 7 | Lesson 02: Self-Attention & Causal Mask | ✅ 完成 | `phase07/01_self_attention.py` | Q/K/V、$\sqrt{d_k}$ 縮放、Numerical Stability、Causal vs Bidirectional |
-| 2026-11-25 | Phase 7 | Lesson 03: Multi-Head Attention | 🚧 待開始 | - | 下一步 |
+| 2026-11-25 | Phase 7 | Lesson 03: Multi-Head Attention | ✅ 完成 | `phase07/02_multi_head_attention.py` | `reshape` + `transpose` 切頭、多頭平行捕捉不同語意關聯 |
+| 待續 | Phase 7 | Lesson 04: Positional Encoding (RoPE) | 🚧 待開始 | - | 下一步 |
 
 ---
 
@@ -26,3 +27,9 @@
 - **模型路線差異**：
   - **GPT 類型（Decoder / Causal）**：逐字生成任務，禁止看到未來 token（開 Causal Mask）。
   - **BERT 類型（Encoder / Bidirectional）**：語意理解與 Embedding 任務，需雙向參考全文（不開 Causal Mask）。
+
+### 2026-11-25 — Phase 7: Multi-Head Attention
+- **核心概念**：把每個 token 的特徵維度對半（或多等分）拆成多個 Head，讓不同 Head 用不同視角平行計算 Attention（例如有的看上下文動詞、有的看字面本身），最後再無損拼回原本維度。
+- **維度轉換關鍵**：
+  - 必須先 `reshape(seq_len, num_heads, d_k)` 再 `transpose(1, 0, 2)` 把 `num_heads` 拉到最前面，不能直接 `reshape(num_heads, seq_len, d_k)`，否則會把句子劈斷。
+  - 3 維張量轉置需用 `swapaxes(-1, -2)`，只對調每個頭內部的列與欄，不動到最外層的頭數維度。
