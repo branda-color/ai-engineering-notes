@@ -12,7 +12,8 @@
 |---|---|---|---|---|---|
 | 2026-11-25 | Phase 7 | Lesson 02: Self-Attention & Causal Mask | ✅ 完成 | `phase07/01_self_attention.py` | Q/K/V、$\sqrt{d_k}$ 縮放、Numerical Stability、Causal vs Bidirectional |
 | 2026-11-25 | Phase 7 | Lesson 03: Multi-Head Attention | ✅ 完成 | `phase07/02_multi_head_attention.py` | `reshape` + `transpose` 切頭、多頭平行捕捉不同語意關聯 |
-| 待續 | Phase 7 | Lesson 04: Positional Encoding (RoPE) | 🚧 待開始 | - | 下一步 |
+| 2026-11-25 | Phase 7 | Lesson 04: Positional Encoding & RoPE | ✅ 完成 | `phase07/03_positional_encoding.py` | 排列不變性驗證、Sinusoidal vs RoPE 相對距離、與 Embedding 流程關係 |
+| 2026-11-25 | Phase 7 | Lesson 12: KV Cache | 🚧 進行中 | - | Phase 7 核心收官 |
 
 ---
 
@@ -33,3 +34,10 @@
 - **維度轉換關鍵**：
   - 必須先 `reshape(seq_len, num_heads, d_k)` 再 `transpose(1, 0, 2)` 把 `num_heads` 拉到最前面，不能直接 `reshape(num_heads, seq_len, d_k)`，否則會把句子劈斷。
   - 3 維張量轉置需用 `swapaxes(-1, -2)`，只對調每個頭內部的列與欄，不動到最外層的頭數維度。
+
+### 2026-11-25 — Phase 7: Positional Encoding & RoPE
+- **為什麼需要**：Self-Attention 具備排列不變性（Permutation Invariant），沒加位置訊號時「狗咬人」與「人咬狗」算出的輸出完全一樣。
+- **演進路線**：
+  - 早期 **Sinusoidal**：用 `sin / cos` 產生 `[-1, 1]` 區間的絕對位置號碼牌，直接加在輸入向量上。
+  - 現代 **RoPE**：在 Attention 階段對 `Q`、`K` 做角度旋轉，使 `Q @ K.T` 內積結果只取決於兩者相對距離（如 `rope_theta` 決定長文本外推）。
+- **與 Embedding 的關係**：Token Embedding（查字義）→ Position/RoPE（揉入順序）→ 穿過多層 Transformer → 最終輸出句意 Embedding（RAG 向量搜尋所用）。
