@@ -13,7 +13,8 @@
 | 2026-11-25 | Phase 7 | Lesson 02: Self-Attention & Causal Mask | ✅ 完成 | `phase07/01_self_attention.py` | Q/K/V、$\sqrt{d_k}$ 縮放、Numerical Stability、Causal vs Bidirectional |
 | 2026-11-25 | Phase 7 | Lesson 03: Multi-Head Attention | ✅ 完成 | `phase07/02_multi_head_attention.py` | `reshape` + `transpose` 切頭、多頭平行捕捉不同語意關聯 |
 | 2026-11-25 | Phase 7 | Lesson 04: Positional Encoding & RoPE | ✅ 完成 | `phase07/03_positional_encoding.py` | 排列不變性驗證、Sinusoidal vs RoPE 相對距離、與 Embedding 流程關係 |
-| 2026-11-25 | Phase 7 | Lesson 12: KV Cache | 🚧 進行中 | - | Phase 7 核心收官 |
+| 2026-11-25 | Phase 7 | Lesson 12: KV Cache | ✅ 完成 | `phase07/04_kv_cache.py` | Prefill vs Decode 瓶頸、增量快取實測 19.7x 加速、PagedAttention / Prefix Caching 概念 |
+| 待續 | Phase 11 | LLM Engineering (RAG & Eval) | 🚧 待開始 | - | 下一站主戰場（建議開新對話視窗銜接） |
 
 ---
 
@@ -41,3 +42,10 @@
   - 早期 **Sinusoidal**：用 `sin / cos` 產生 `[-1, 1]` 區間的絕對位置號碼牌，直接加在輸入向量上。
   - 現代 **RoPE**：在 Attention 階段對 `Q`、`K` 做角度旋轉，使 `Q @ K.T` 內積結果只取決於兩者相對距離（如 `rope_theta` 決定長文本外推）。
 - **與 Embedding 的關係**：Token Embedding（查字義）→ Position/RoPE（揉入順序）→ 穿過多層 Transformer → 最終輸出句意 Embedding（RAG 向量搜尋所用）。
+
+### 2026-11-25 — Phase 7: KV Cache 與推論系統架構
+- **核心原理**：因 Causal Mask 保證過去的字不受未來影響，已生成的 `K`、`V` 向量不會再變動；推論時只算最新 1 個字的 `q_new, k_new, v_new`，將 `k_new, v_new` 接在既有快取後即可（連 Mask 都能省掉，200 步實測加速 19.7x 且結果完全等價）。
+- **推論兩階段瓶頸**：
+  - **Prefill**：一次算完輸入 Prompt 並填滿初始 KV Cache，決定 TTFT（首字延遲），吃算力。
+  - **Decode**：逐字生成，每步都要讀取整份 KV Cache，決定吐字速度，吃爆 GPU VRAM 容量與記憶體頻寬。
+- **生產級記憶體管理**：vLLM 等引擎採用類似 OS 分頁與 Memory Pool 的 **PagedAttention** 管理 KV Block；開啟 **Prefix Caching** 時透過 Hash Table 與 LRU 淘汰策略，跨 Request 復用共用的 System Prompt 快取。
